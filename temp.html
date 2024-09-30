@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity and Physics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-k6RqeWeci5ZR/Lv4MR0sA0FfDOMwX+U+nWsZ7FRA/2WvNImO/Hw5b6Aedk2B5F+bfqDq62OKA8obv3L7NNd+9g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background-color: #f0f0f0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .search-box {
+            width: 300px;
+            height: 50px;
+            background-color: #007bff;
+            position: absolute;
+            top: 0;
+            border-radius: 25px; /* Make it rounded */
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            transition: box-shadow 0.2s;
+        }
+
+        input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 25px; /* Match the box */
+            padding: 0 10px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-box:focus-within {
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+
+        .icon-box {
+            width: 100px; /* Increased width for text */
+            height: 100px; /* Increased height for text */
+            position: absolute;
+            border-radius: 10px; /* Make it rounded */
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            transition: box-shadow 0.2s;
+            text-align: center; /* Center the text */
+        }
+
+        .icon-box:hover {
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+
+        .icon-text {
+            margin-top: 5px; /* Space between icon and text */
+            font-size: 14px; /* Smaller text size */
+        }
+    </style>
+</head>
+<body>
+    <div class="search-box" id="searchBox">
+        <input type="text" placeholder="Search...">
+    </div>
+
+    <script>
+        const gravity = 0.5;     // Gravity strength
+        const damping = 0.8;     // Bounce factor
+        const dragFactor = 0.98; // Air resistance (drag)
+
+        // Physics object to track the search box properties
+        class Box {
+            constructor(element) {
+                this.element = element;
+                this.width = element.offsetWidth; // Width of the box
+                this.height = element.offsetHeight; // Height of the box
+                this.x = Math.random() * (window.innerWidth - this.width); // Random initial position
+                this.y = Math.random() * (window.innerHeight - this.height);
+                this.vx = Math.random() * 4 - 2; // Random initial velocity
+                this.vy = Math.random() * 4 - 2;
+                this.isDragging = false; // Track if the box is being dragged
+            }
+
+            // Update position and velocity of the box
+            updatePosition() {
+                if (!this.isDragging) {
+                    this.vy += gravity; // Apply gravity
+                    this.vx *= dragFactor; // Apply drag
+                    this.vy *= dragFactor;
+
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Collision with screen boundaries
+                    this.handleScreenCollision();
+                }
+
+                // Apply the updated position to the DOM element
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+
+            // Prevent the box from leaving the screen
+            handleScreenCollision() {
+                if (this.x <= 0 || this.x + this.width >= window.innerWidth) {
+                    this.vx *= -damping; // Reverse velocity and apply damping
+                    if (this.x <= 0) this.x = 0;
+                    if (this.x + this.width >= window.innerWidth) {
+                        this.x = window.innerWidth - this.width;
+                    }
+                }
+
+                if (this.y <= 0 || this.y + this.height >= window.innerHeight) {
+                    this.vy *= -damping; // Reverse velocity and apply damping
+                    if (this.y <= 0) this.y = 0;
+                    if (this.y + this.height >= window.innerHeight) {
+                        this.y = window.innerHeight - this.height;
+                    }
+                }
+            }
+
+            // Dragging functionality
+            startDrag(mouseX, mouseY) {
+                this.isDragging = true;
+                this.offsetX = mouseX - this.x;
+                this.offsetY = mouseY - this.y;
+                this.vx = 0;
+                this.vy = 0; // Stop movement while dragging
+            }
+
+            drag(mouseX, mouseY) {
+                if (this.isDragging) {
+                    this.x = mouseX - this.offsetX;
+                    this.y = mouseY - this.offsetY;
+                }
+            }
+
+            endDrag(vx, vy) {
+                this.isDragging = false;
+                this.vx = vx;
+                this.vy = vy; // Add a "throw" effect based on mouse velocity
+            }
+        }
+
+        // Initialize boxes
+        const boxes = [];
+
+        // Create the search box
+        const searchBox = new Box(document.getElementById('searchBox'));
+        boxes.push(searchBox);
+
+        // Create icon boxes with text and different colors
+        const icons = [
+            { icon: 'fas fa-envelope', text: 'Mail' },
+            { icon: 'fas fa-image', text: 'Image' },
+            { icon: 'fas fa-file', text: 'File' },
+            { icon: 'fas fa-music', text: 'Music' },
+            { icon: 'fas fa-video', text: 'Video' },
+            { icon: 'fas fa-user', text: 'User' },
+            { icon: 'fas fa-cog', text: 'Settings' },
+            { icon: 'fas fa-bell', text: 'Notification' },
+            { icon: 'fas fa-calendar', text: 'Calendar' },
+            { icon: 'fas fa-comments', text: 'Comments' },
+            { icon: 'fas fa-heart', text: 'Favorites' },
+            { icon: 'fas fa-shopping-cart', text: 'Cart' },
+            { icon: 'fas fa-chart-bar', text: 'Stats' },
+            { icon: 'fas fa-map', text: 'Map' },
+            { icon: 'fas fa-sun', text: 'Weather' },
+            { icon: 'fas fa-snowflake', text: 'Snow' }
+        ];
+
+        const colors = [
+            '#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33A8',
+            '#33FFF5', '#FF8C33', '#A833FF', '#FF3333', '#33FF8C',
+            '#FFC133', '#33FFC1', '#C133FF', '#FF33C8', '#C8FF33',
+            '#33C8FF'
+        ];
+
+        const placedBoxes = new Set(); // To keep track of occupied positions
+
+        icons.forEach(({ icon, text }, index) => {
+            let box;
+            do {
+                box = document.createElement('div');
+                box.className = 'icon-box';
+                box.innerHTML = `<i class="${icon}"></i><div class="icon-text">${text}</div>`;
+                box.style.backgroundColor = colors[index % colors.length]; // Set different color
+                box.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
+                box.style.top = `${Math.random() * (window.innerHeight - 100)}px`;
+            } while (isOverlapping(box) || placedBoxes.has(`${box.style.left}-${box.style.top}`));
+
+            placedBoxes.add(`${box.style.left}-${box.style.top}`); // Mark this position as occupied
+            document.body.appendChild(box);
+            boxes.push(new Box(box));
+        });
+
+        function isOverlapping(box) {
+            const rect1 = box.getBoundingClientRect();
+            return boxes.some(existingBox => {
+                const rect2 = existingBox.element.getBoundingClientRect();
+                return !(
+                    rect1.right < rect2.left ||
+                    rect1.left > rect2.right ||
+                    rect1.bottom < rect2.top ||
+                    rect1.top > rect2.bottom
+                );
+            });
+        }
+
+        // Mouse interaction handling
+        let activeBox = null;
+
+        document.addEventListener('mousedown', (e) => {
+            boxes.forEach(box => {
+                if (e.target === box.element) {
+                    activeBox = box;
+                    box.startDrag(e.clientX, e.clientY);
+                }
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (activeBox) {
+                activeBox.drag(e.clientX, e.clientY);
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (activeBox) {
+                activeBox.endDrag(activeBox.vx, activeBox.vy);
+                activeBox = null;
+            }
+        });
+
+        // Animation loop
+        function animate() {
+            boxes.forEach(box => {
+                box.updatePosition();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
